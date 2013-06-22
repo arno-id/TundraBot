@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bot
+	name="TundraBot"
+	description="TundraBot the TundraBot"
+	heroname="Hero_Tundra"
+	rootlua="tundra_main.lua"
+	defaultplayername="TundraBot"
+	precachepath="/heroes/tundra"
+/>
