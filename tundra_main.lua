@@ -90,22 +90,19 @@ object.tSkills = {
 
 
 -- These are bonus aggression points if a skill/item is available for use
-object.nPiercingShardsUp = 15
-object.nCallofWinterUp = 10 
-object.nColdShoulderUp = 15
-object.nAvalancheUp = 30
+object.nPiercingShardsUp = 5
+object.nColdShoulderUp = 10
+object.nAvalancheUp = 15
 
 -- These are bonus aggression points that are applied to the bot upon successfully using a skill/item
 object.nPiercingShardsUse = 10
-object.nCallofWinterUse = 5
-object.nColdShoulderUse = 20
-object.nAvalancheUse = 50
+object.nColdShoulderUse = 15
+object.nAvalancheUse = 20
 
 
 --These are thresholds of aggression the bot must reach to use these abilities
-object.nPiercingShardsThreshold = 35
-object.nCallofWinterThreshold = 20
-object.nColdShoulderThreshold = 40
+object.nPiercingShardsThreshold = 20
+object.nColdShoulderThreshold = 35
 object.nAvalancheThreshold = 40
 
 
@@ -224,11 +221,9 @@ function object:onthinkOverride(tGameVariables)
 							 VecPointTwo = Vector3.Create(5013.7031,12865.3242) -- Top pull
 						elseif core.tMyLane.sLaneName == 'middle' and unitFlying:GetBehavior() == nil then
 							if core.myTeam == HoN.GetLegionTeam() then
-								BotEcho("tundra legion miden van")
-								 VecPointOne = Vector3.Create(6017.0605,10072.7637) -- Top rune
+							  	 VecPointOne = Vector3.Create(6017.0605,10072.7637) -- Top rune
 							else
-								BotEcho("tundra hellbourne miden van")
-								 VecPointOne = Vector3.Create(10829.2061,5088.8584) -- Bot rune
+							  	 VecPointOne = Vector3.Create(10829.2061,5088.8584) -- Bot rune
 							end
 							VecPointTwo = vecUnitSelf
 						elseif core.tMyLane.sLaneName == 'bottom'  and unitFlying:GetBehavior() == nil  then
@@ -331,8 +326,6 @@ function object:oncombateventOverride(EventData)
     if EventData.Type == "Ability" then
         if EventData.InflictorName == "Ability_Tundra1" then
             nAddBonus = nAddBonus + object.nPiercingShardsUse
-        elseif EventData.InflictorName == "Ability_Tundra2" then
-            nAddBonus = nAddBonus + object.nCallofWinterUse        
 		elseif EventData.InflictorName == "Ability_Tundra3" then
             nAddBonus = nAddBonus + object.nColdShoulderUse
         elseif EventData.InflictorName == "Ability_Tundra4" then
@@ -364,9 +357,18 @@ local function funcRetreatFromThreatExecuteOverride(botBrain)
 		end
 	end
 	
+	if unitCoeurl == nil and skills.abilW:CanActivate() then
+		local abilCallofWinter = skills.abilW
+		bActionTaken = core.OrderAbility(botBrain, abilCallofWinter)
+	end
 	
+	if unitCoeurl ~= nil then -- slow the attackers!
+		local unitTarget = getClosestEnemyUnit(500)
+		BotEcho("coeurl will now attack a chasing heroo")
+ 		core.OrderAttackClamp(botBrain, unitCoeurl, unitTarget)
+	end
 	
-		return object.RetreatFromThreatExecuteOld(botBrain)
+	return object.RetreatFromThreatExecuteOld(botBrain)
 	
 
 end
@@ -390,9 +392,6 @@ local function CustomHarassUtilityFnOverride(hero)
         nUtil = nUtil + object.nPiercingShardsUp
     end
 
-    if skills.abilW:CanActivate() then
-        nUtil = nUtil + object.nCallofWinterUp
-    end
 
     if skills.abilE:CanActivate() then
         nUtil = nUtil + object.nColdShoulderUp
