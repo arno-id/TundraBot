@@ -75,11 +75,11 @@ behaviorLib.LateItems  = {'Item_DaemonicBreastplate', 'Item_Dawnbringer' }
 
 --Skills:
 	--Info: https://www.heroesofnewerth.com/heroes/view/160/Tundra#hero
-	--Q PiercingShards
-	--W CallofWinter (animals)
-	--E ColdShoulder
-	--R Avalanche
--- Skillbuild table, 0=Q, 1=W, 2=E, 3=R, 4=Attri
+	--Q - PiercingShards
+	--W - CallofWinter (animals)
+	--E - ColdShoulder
+	--R - Avalanche
+ 
 object.tSkills = {
     0, 2, 0, 1, 0,
     3, 0, 1, 1, 1, 
@@ -89,24 +89,24 @@ object.tSkills = {
 }
 
 
--- These are bonus agression points if a skill/item is available for use
+-- These are bonus aggression points if a skill/item is available for use
 object.nPiercingShardsUp = 15
-object.nCallofWinterUp = 5 
+object.nCallofWinterUp = 10 
 object.nColdShoulderUp = 15
 object.nAvalancheUp = 30
 
--- These are bonus agression points that are applied to the bot upon successfully using a skill/item
-object.nPiercingShardsUse = 15
+-- These are bonus aggression points that are applied to the bot upon successfully using a skill/item
+object.nPiercingShardsUse = 10
 object.nCallofWinterUse = 5
-object.nColdShoulderUse = 10
+object.nColdShoulderUse = 20
 object.nAvalancheUse = 50
 
 
 --These are thresholds of aggression the bot must reach to use these abilities
 object.nPiercingShardsThreshold = 35
-object.nCallofWinterThreshold = 15
-object.nColdShoulderThreshold = 30
-object.nAvalancheThreshold = 85
+object.nCallofWinterThreshold = 20
+object.nColdShoulderThreshold = 40
+object.nAvalancheThreshold = 40
 
 
 --####################################################################
@@ -147,10 +147,33 @@ function object:SkillBuild()
 end
 
 
---brrowed from kairus101 
+--borrowed from kairus101 
 local function positionOffset(pos, angle, distance) --this is used by minions to form a ring around people.
         tmp = Vector3.Create(cos(angle)*distance,sin(angle)*distance)
         return tmp+pos
+end
+
+local function getClosestEnemyUnit(distance)
+	--if we have animals, make them hit the attackers. the dog slows so it will help a lot 
+ 
+		local vecUnitSelf = core.unitSelf:GetPosition()
+		local dClosestUnitDist = distance*distance
+		local unitClosest = nil
+		local dCurrentDist = nil
+		local tTargets = core.localUnits["EnemyHeroes"]
+		 		for _, unitHero in pairs(tTargets) do
+						dCurrentDist = Vector3.Distance2DSq(unitHero:GetPosition(),vecUnitSelf)
+					if  dCurrentDist < dClosestUnitDist then
+						unitClosest = unitHero
+						dClosestUnitDist = dCurrentDist
+					end
+				end
+			 
+			if dClosestUnitDist ~= distance*distance then
+				return unitClosest
+			end
+	
+	return nil
 end
 
 ------------------------------------------------------
@@ -179,8 +202,9 @@ function object:onthinkOverride(tGameVariables)
 					unitFlying = unit
 					
 					--invisibility if possible
+					local unitTarget = getClosestEnemyUnit(500)
 					local skill1 = unitFlying:GetAbility(0) --invisibility
-					if skill1 ~= nil and skill1:CanActivate() then 
+					if skill1 ~= nil and skill1:CanActivate() and unitTarget ~= nil then 
 						core.OrderAbility(botBrain, skill1)
 					end
 					  
@@ -199,8 +223,14 @@ function object:onthinkOverride(tGameVariables)
 							 VecPointOne = Vector3.Create(6017.0605,10072.7637) -- Top rune
 							 VecPointTwo = Vector3.Create(5013.7031,12865.3242) -- Top pull
 						elseif core.tMyLane.sLaneName == 'middle' and unitFlying:GetBehavior() == nil then
-							 VecPointOne = Vector3.Create(10829.2061,5088.8584) -- Bot rune
-							 VecPointTwo = vecUnitSelf
+							if core.myTeam == HoN.GetLegionTeam() then
+								BotEcho("tundra legion miden van")
+								 VecPointOne = Vector3.Create(6017.0605,10072.7637) -- Top rune
+							else
+								BotEcho("tundra hellbourne miden van")
+								 VecPointOne = Vector3.Create(10829.2061,5088.8584) -- Bot rune
+							end
+							VecPointTwo = vecUnitSelf
 						elseif core.tMyLane.sLaneName == 'bottom'  and unitFlying:GetBehavior() == nil  then
 							 VecPointOne = Vector3.Create(10829.2061,5088.8584) -- Bot rune
 							 VecPointTwo =   Vector3.Create(13423.2822,2856.9995) --Bot jungle
@@ -215,46 +245,65 @@ function object:onthinkOverride(tGameVariables)
 						end
 					 
 					--end
-				
+	  
+    		
 				end
+				
 				if  unitType=="Pet_Tundra_Ability2_Ranged" then --Coeurl
 					unitCoeurl = unit
-					local unitCoeurlPos = unitCoeurl:GetPosition()
-					 
-					--if unitCoeurl:GetBehavior() == nil then
-						local nDistance = Vector3.Distance2DSq(unitCoeurlPos,vecUnitSelf)
+					local unitTarget = getClosestEnemyUnit(500)
+					  
+					--if unitNecroMelee:GetBehavior() == nil then
+					if unitTarget ~= nil then
+						core.OrderAttackClamp(botBrain, unitCoeurl, unitTarget)
+					else
+						local vecCoeurlPos = unitCoeurl:GetPosition()
+					 	local nDistance = Vector3.Distance2DSq(vecCoeurlPos,vecUnitSelf)
 						 if nDistance > 200*200 and nDistance < 500*500 then
-							--nothing do to, he should be in the right position
+							--nothing do to, he should be in the right position							
 						else 
-							core.OrderMoveToPos(botBrain, unitCoeurl, positionOffset(vecUnitSelf,-90,350))
+							core.OrderMoveToPos(botBrain, unitCoeurl, positionOffset(vecUnitSelf,45,350))
 						end
+					end
 					--end
 				end
 				
 				if unitType == "Pet_NecroMelee" then 
 					unitNecroMelee = unit
-					local unitNecroMeleePos = unitNecroMelee:GetPosition()
+					local unitTarget = getClosestEnemyUnit(500)
+			
 					--if unitNecroMelee:GetBehavior() == nil then
-						local nDistance = Vector3.Distance2DSq(unitNecroMeleePos,vecUnitSelf)
+					if unitTarget ~= nil then
+						core.OrderAttackClamp(botBrain, unitNecroMelee, unitTarget)
+					else
+						local vecNecroMeleePos = unitNecroMelee:GetPosition()
+						local nDistance = Vector3.Distance2DSq(vecNecroMeleePos,vecUnitSelf)
 						if nDistance > 200*200 and nDistance < 500*500 then
 							--nothing do to, he should be in the right position
 						else 
 							core.OrderMoveToPos(botBrain, unitNecroMelee, positionOffset(vecUnitSelf,0,250))
 						end
-
+					end
 					--end
 				end
 				
 				if  unitType =="Pet_NecroRanged" then 
 					unitNecroRanged = unit
-					local unitNecroRangedPos = unitNecroRanged:GetPosition()
+					local unitTarget = getClosestEnemyUnit(500)
+					  
+					--if unitNecroMelee:GetBehavior() == nil then
+					if unitTarget ~= nil then
+						core.OrderAttackClamp(botBrain, unitNecroRanged, unitTarget)
+					else
+						local vecNecroRangedPos = unitNecroRanged:GetPosition()
 					--if unitNecroRanged:GetBehavior() == nil then
-						local nDistance = Vector3.Distance2DSq(unitNecroRangedPos,vecUnitSelf)
+						local nDistance = Vector3.Distance2DSq(vecNecroRangedPos,vecUnitSelf)
 						if nDistance > 200*200 and nDistance < 500*500 then
-							--nothing do to, he should be in the right position
+							--nothing do to, he should be in the right position							 
 						else 
 							core.OrderMoveToPos(botBrain, unitNecroRanged, positionOffset(vecUnitSelf,90,250))
 						end
+					end
 					--end
 				end
 				
@@ -266,9 +315,7 @@ end
 object.onthinkOld = object.onthink
 object.onthink 	= object.onthinkOverride
 
-
-
-
+ 
 ----------------------------------------------
 
 --            OncombatEvent Override        --
@@ -306,46 +353,17 @@ object.oncombatevent     = object.oncombateventOverride
 ----------------------------------
 --  RetreatFromThreat Override
 ----------------------------------
-object.nRetreatStealthThreshold = 50
 
---Unfortunately this utility is kind of volatile, so we basically have to deal with util spikes
-function funcRetreatFromThreatExecuteOverride(botBrain)
-	
-	--powersupply is good for escape
+local function funcRetreatFromThreatExecuteOverride(botBrain)
+		 
+	--power supply is good for escape
 	local unitSelf = core.unitSelf
 	if itemPowerSupply and itemPowerSupply:CanActivate() then
-		if  unitSelf:GetHealth() ~= unitSelf:GetMaxHealth() then
+		if  unitSelf:GetHealth() < (unitSelf:GetMaxHealth() / 2) then
 				bActionTaken = core.OrderItemClamp(botBrain, unitSelf, itemPowerSupply)
 		end
 	end
 	
-		--if we have animals, make them hit the attackers. the dog slows so it will help a lot 
-	if unitCoeurl ~= nil or unitNecroMelee ~= nil or unitNecroRanged ~= nil then 
-		local vecUnitSelf = unitSelf:GetPosition()
-		local dClosestUnitDist = 5000
-		local unitClosest = nil
-		local dCurrentDist = nil
-		local tTargets = core.localUnits["EnemyHeroes"]
-		 		for key, hero in pairs(tTargets) do
-						dCurrentDist = Vector3.Distance2DSq(vecUnitSelf, hero:GetPosition())
-					if  dCurrentDist < dClosestUnitDist then
-						unitClosest = hero
-						dClosestUnitDist = dCurrentDist
-					end
-				end
-				
-			if dClosestUnitDist ~= 5000 then
-				if unitCoeurl ~= nil then
-					core.OrderAttackClamp(botBrain, unitCoeurl, unitClosest)
-				end
-				if unitNecroMelee ~= nil then
-					core.OrderAttackClamp(botBrain, unitNecroMelee, unitClosest)
-				end
-				if  unitNecroRanged ~= nil then
-					core.OrderAttackClamp(botBrain, unitNecroRanged, unitClosest)
-				end
-			end
-	end
 	
 	
 		return object.RetreatFromThreatExecuteOld(botBrain)
@@ -376,7 +394,7 @@ local function CustomHarassUtilityFnOverride(hero)
         nUtil = nUtil + object.nCallofWinterUp
     end
 
-    if skills.abilR:CanActivate() then
+    if skills.abilE:CanActivate() then
         nUtil = nUtil + object.nColdShoulderUp
     end
 
@@ -393,8 +411,8 @@ behaviorLib.CustomHarassUtility = CustomHarassUtilityFnOverride
 --  FindItems Override
 ----------------------------------
 local function funcFindItemsOverride(botBrain)
-	local bUpdated = object.FindItemsOld(botBrain)
-
+	object.FindItemsOld(botBrain)
+ 
 	if core.itemPowerSupply ~= nil and not core.itemPowerSupply:IsValid() then
 		core.itemPowerSupply = nil
 	end
@@ -402,27 +420,29 @@ local function funcFindItemsOverride(botBrain)
 		core.itemPuzzleBox = nil
 	end
 
-	if bUpdated then
-		--only update if we need to
-		if core.itemPuzzleBox and core.itemPowerSupply then
-			return
-		end
-		
 	 
-		local inventory = core.unitSelf:GetInventory(true)
-		for slot = 1, 12, 1 do
-			local curItem = inventory[slot]
-			if curItem then
-				if core.itemPuzzleBox == nil and curItem:GetName() == "Item_Summon" then
-					core.itemPuzzleBox = core.WrapInTable(curItem)
-
-				elseif core.itemPowerSupply == nil and ( curItem:GetName() == "Item_PowerSupply" or curItem:GetName() == "Item_ManaBattery") then
-					--they will be fine. i will use then when they have charges and the hero needs hp/mana. so the number of the charges is unnecessary to store
-					core.itemPowerSupply = core.WrapInTable(curItem)
-				end
+	--only update if we need to
+	 
+	if core.itemPuzzleBox and core.itemPowerSupply then
+		return
+	end
+	 
+	 
+	local inventory = core.unitSelf:GetInventory(true)
+	for slot = 1, 12, 1 do
+		local curItem = inventory[slot]
+		if curItem and not curItem:IsRecipe() then
+			 
+			if core.itemPuzzleBox == nil and curItem:GetName() == "Item_Summon" then
+				core.itemPuzzleBox = core.WrapInTable(curItem)
+			 
+			elseif core.itemPowerSupply == nil and ( curItem:GetName() == "Item_PowerSupply" or curItem:GetName() == "Item_ManaBattery") then
+				--they will be fine. i will use then when they have charges and the hero needs hp/mana. so the number of the charges is unnecessary to store
+				core.itemPowerSupply = core.WrapInTable(curItem)
 			end
 		end
 	end
+ 
 	
 	
 end
@@ -534,7 +554,7 @@ local function HarassHeroExecuteOverride(botBrain)
 		if not bActionTaken and core.itemPuzzleBox ~= nil then
 			local itemPuzzleBox = core.itemPuzzleBox
 			if itemPuzzleBox and itemPuzzleBox:CanActivate() then
-					bActionTaken = core.OrderItemClamp(botBrain, unitSelf, itemPuzzleBox)
+	 				bActionTaken = core.OrderItemClamp(botBrain, unitSelf, itemPuzzleBox)
 			end
 		end
 	
@@ -545,19 +565,19 @@ local function HarassHeroExecuteOverride(botBrain)
 				end
 		end  
 
-	--Unit control	
-		if unitCoeurl ~= nil then
+		if unitCoeurl ~= nil and unitCoeurl:GetBehavior() == nil then
 			core.OrderAttackClamp(botBrain, unitCoeurl, unitTarget)
 		end
 		
-		if unitNecroMelee ~= nil then
+		if unitNecroMelee ~= nil and unitNecroMelee:GetBehavior() == nil  then
 			core.OrderAttackClamp(botBrain, unitNecroMelee, unitTarget)
 		end
 
-		if unitNecroRanged ~= nil then
+		if unitNecroRanged ~= nil and unitNecroRanged:GetBehavior() == nil  then
 			core.OrderAttackClamp(botBrain, unitNecroRanged, unitTarget)
 		end
-    
+
+	
     if not bActionTaken then
         return object.harassExecuteOld(botBrain) 
     end 
@@ -568,3 +588,4 @@ end
 -- overload the behaviour stock function with custom 
 object.harassExecuteOld = behaviorLib.HarassHeroBehavior["Execute"]
 behaviorLib.HarassHeroBehavior["Execute"] = HarassHeroExecuteOverride
+
